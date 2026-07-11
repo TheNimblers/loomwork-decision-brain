@@ -266,7 +266,7 @@ loomwork-decision-brain/
 ├── migrations/          # Plain SQL schema files
 ├── docs/
 │   ├── architecture.md  # Schema and API contracts
-│   └── design-note.md   # Submission reasoning (for Syed)
+│   └── design-note.md   # Submission reasoning
 ├── README.md
 ├── requirements.txt
 ├── .env.example
