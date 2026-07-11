@@ -71,7 +71,7 @@ The results view has three panels:
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.13+ (matches Dockerfile)
 - Anthropic API key
 - Tavily API key (free tier sufficient)
 
