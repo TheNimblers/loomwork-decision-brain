@@ -52,8 +52,14 @@ Date: {document_date or 'unknown'}
     return ExtractionResult(facts=valid_facts)
 
 
-def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_id: str, source_title: str) -> list[dict]:
-    """Deterministic contradiction detection. No LLM. Called at every fact insert."""
+def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_id: str, source_title: str, source_type: str) -> list[dict]:
+    """Deterministic contradiction detection. No LLM. Called at every fact insert.
+
+    Research sources are excluded from contradiction detection so that external
+    benchmark facts do not pollute the internal contradiction panel.
+    """
+    if source_type == "research":
+        return []
     if ef.numeric_value is None:
         return []
     if ef.fact_type not in GLOBALLY_SCOPED_TYPES:
@@ -63,7 +69,8 @@ def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_id: st
         """SELECT f.id, f.fact_type, f.numeric_value, f.numeric_unit, s.title as source_title
            FROM facts f JOIN sources s ON f.source_id = s.id
            WHERE f.fact_type = ? AND f.id != ? AND f.source_id != ? AND f.superseded_by IS NULL
-             AND f.numeric_value IS NOT NULL""",
+             AND f.numeric_value IS NOT NULL
+             AND s.source_type != 'research'""",
         (ef.fact_type, new_fact_id, source_id)
     ).fetchall()
     for row in existing:
@@ -126,7 +133,7 @@ def ingest_document(req: IngestRequest) -> dict:
                  req.document_date, now_iso())
             )
             link_entities_to_fact(fact_id, ef.entities or [], db)
-            contradictions = detect_contradictions(fact_id, ef, db, source_id, req.title)
+            contradictions = detect_contradictions(fact_id, ef, db, source_id, req.title, req.source_type)
             all_contradictions.extend(contradictions)
             fact_ids.append(fact_id)
             facts_inserted += 1
