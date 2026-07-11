@@ -12,6 +12,12 @@ from prompts import EXTRACTION_SYSTEM_PROMPT
 logger = logging.getLogger(__name__)
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# Only these fact types represent single company-wide metrics that can contradict.
+# For this Q3 slice we scope to runway so the contradiction panel shows the signal, not noise.
+GLOBALLY_SCOPED_TYPES = {
+    "runway_months"
+}
+
 
 def claude_extract(source_type: str, title: str, content: str, document_date: str | None) -> ExtractionResult:
     """SEAM 1: the only LLM call in the write path."""
@@ -46,17 +52,19 @@ Date: {document_date or 'unknown'}
     return ExtractionResult(facts=valid_facts)
 
 
-def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_title: str) -> list[dict]:
+def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_id: str, source_title: str) -> list[dict]:
     """Deterministic contradiction detection. No LLM. Called at every fact insert."""
     if ef.numeric_value is None:
+        return []
+    if ef.fact_type not in GLOBALLY_SCOPED_TYPES:
         return []
     contradictions = []
     existing = db.execute(
         """SELECT f.id, f.fact_type, f.numeric_value, f.numeric_unit, s.title as source_title
            FROM facts f JOIN sources s ON f.source_id = s.id
-           WHERE f.fact_type = ? AND f.id != ? AND f.superseded_by IS NULL
+           WHERE f.fact_type = ? AND f.id != ? AND f.source_id != ? AND f.superseded_by IS NULL
              AND f.numeric_value IS NOT NULL""",
-        (ef.fact_type, new_fact_id)
+        (ef.fact_type, new_fact_id, source_id)
     ).fetchall()
     for row in existing:
         if row["numeric_unit"] != ef.numeric_unit:
@@ -65,11 +73,15 @@ def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_title:
         if diff <= 0.10:
             continue
         severity = "high" if diff > 0.30 else "medium"
-        c_id = hashlib.sha256(f"{row['id']}{new_fact_id}".encode()).hexdigest()[:16]
+        a, b = sorted([row["numeric_value"], ef.numeric_value])
+        c_id = hashlib.sha256(f"{ef.fact_type}:{a}:{b}".encode()).hexdigest()[:16]
+        existing_c = db.execute("SELECT id FROM contradictions WHERE id = ?", (c_id,)).fetchone()
+        if existing_c:
+            continue
         desc = (f"{ef.fact_type}: {row['numeric_value']} {row['numeric_unit']} "
                 f"({row['source_title']}) vs {ef.numeric_value} {ef.numeric_unit} ({source_title})")
         db.execute(
-            """INSERT OR IGNORE INTO contradictions
+            """INSERT INTO contradictions
                (id, fact_a_id, fact_b_id, conflict_type, description, severity, detected_at)
                VALUES (?,?,?,?,?,?,?)""",
             (c_id, row["id"], new_fact_id, "numeric_mismatch", desc, severity, now_iso())
@@ -114,7 +126,7 @@ def ingest_document(req: IngestRequest) -> dict:
                  req.document_date, now_iso())
             )
             link_entities_to_fact(fact_id, ef.entities or [], db)
-            contradictions = detect_contradictions(fact_id, ef, db, req.title)
+            contradictions = detect_contradictions(fact_id, ef, db, source_id, req.title)
             all_contradictions.extend(contradictions)
             fact_ids.append(fact_id)
             facts_inserted += 1
