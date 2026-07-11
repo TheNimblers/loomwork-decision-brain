@@ -64,7 +64,7 @@ Python · FastAPI · SQLite (FTS5 + bi-temporal schema) · Claude · Tavily · m
 The results view has three panels:
 
 1. **Q3 answer panel** — the synthesised answer, confidence score, key contradiction highlighted, recommended action, and open gaps. Every claim links to its fact ID.
-2. **Contradiction panel** — the runway contradiction (18mo vs 9mo) shown side by side with the verbatim quote from each source.
+2. **Contradiction panel** — three runway contradictions shown: April baseline 24 months (Atlas Q1), May investor update 18 months (Northpeak), June board note 9 months conditional on AE hires. The declining-trend story across three sources.
 3. **Decision log** — the pending recommendation. One approve button. One reject button. 409 if you try to approve twice.
 
 ---
@@ -113,20 +113,20 @@ Actual output from this build:
 ```
 Seeding 12 documents...
 
-  OK [ 1/12] Investor Update — May 2026 (Northpeak Series A)       12 facts, 0 contradictions
-  OK [ 2/12] Board Note — Q2 Runway and Hiring Decision            9 facts, 1 contradictions <- contradiction [HIGH]
-  OK [ 3/12] Maya Chen Tweet — June 12 2026                        4 facts, 0 contradictions
-  OK [ 4/12] Customer Call — Acme Freight Evaluation               9 facts, 0 contradictions
-  OK [ 5/12] Sales Call — Brightway Logistics                      9 facts, 0 contradictions
-  OK [ 6/12] Account Review — Delta Logix                          9 facts, 0 contradictions
-  OK [ 7/12] Follow-up Call — Synapse Logistics                    8 facts, 0 contradictions
-  OK [ 8/12] Investor Update — Q1 2026 (Atlas Ventures)            9 facts, 2 contradictions <- contradiction [HIGH]
-  OK [ 9/12] Maya Weekly Note — ICP Decision June 20               5 facts, 0 contradictions
-  OK [10/12] Pipeline Update — Priya Nair June 25                  15 facts, 0 contradictions
-  OK [11/12] Lost Deal Debrief — FreightMax Nordic                 7 facts, 0 contradictions
-  OK [12/12] Sam Vora Email — Runway and ICP Alignment             8 facts, 0 contradictions
+  OK [ 1/12] Investor Update — May 2026 (Northpeak Series A)       15 facts, 0 contradictions
+  OK [ 2/12] Board Note — Q2 Runway and Hiring Decision             9 facts, 1 contradictions <- contradiction [HIGH]
+  OK [ 3/12] Maya Chen Tweet — June 12 2026                         4 facts, 0 contradictions
+  OK [ 4/12] Customer Call — Acme Freight Evaluation               10 facts, 0 contradictions
+  OK [ 5/12] Sales Call — Brightway Logistics                        9 facts, 0 contradictions
+  OK [ 6/12] Account Review — Delta Logix                            9 facts, 0 contradictions
+  OK [ 7/12] Follow-up Call — Synapse Logistics                      8 facts, 0 contradictions
+  OK [ 8/12] Investor Update — Q1 2026 (Atlas Ventures)              8 facts, 2 contradictions <- contradiction [HIGH]
+  OK [ 9/12] Maya Weekly Note — ICP Decision June 20                 6 facts, 0 contradictions
+  OK [10/12] Pipeline Update — Priya Nair June 25                   14 facts, 0 contradictions
+  OK [11/12] Lost Deal Debrief — FreightMax Nordic                   9 facts, 0 contradictions
+  OK [12/12] Sam Vora Email — Runway and ICP Alignment               8 facts, 0 contradictions
 
-Seed complete. 12 sources 104 facts 3 contradictions detected.
+Seed complete. 12 sources 109 facts 3 contradictions detected.
 ```
 
 The three persisted contradictions are all runway mismatches (18mo vs 9mo, 18mo vs 24mo, 9mo vs 24mo). Deal-specific values like `deal_value_acv` and `budget_authority_threshold` are intentionally excluded from numeric contradiction detection because a different customer's deal size is a data point, not a contradiction.
