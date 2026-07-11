@@ -239,7 +239,7 @@ All paths prefixed `/brain/`. FastAPI generates interactive docs at `/brain/docs
 
 ## What I deliberately left out and why
 
-The promotion ladder, multi-tenancy, auth, MCP, and a full frontend are all out of scope. The design note explains each tradeoff. The sharp slice — one pipeline that does extraction, contradiction detection, research, synthesis, and decision logging correctly — is worth more than six features that each do half the job.
+The promotion ladder, multi-tenancy, auth, MCP, and a full frontend are all out of scope. The design note (`docs/design-note.md`) explains each tradeoff, the invariant architecture, and the deliberate divergences from the brief. The sharp slice — one pipeline that does extraction, contradiction detection, research, synthesis, and decision logging correctly — is worth more than six features that each do half the job.
 
 ---
 

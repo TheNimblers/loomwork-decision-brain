@@ -1,4 +1,4 @@
-: decision note, design rationale, and deviations for the Loomwork Decision Brain build
+# Design Note — Loomwork Decision Brain
 
 **Author:** Syed Mujtaba Mahdi
 **Project:** Loomwork Decision Brain (Builders Studio Challenge)
