@@ -131,6 +131,8 @@ Seed complete. 12 sources 109 facts 3 contradictions detected.
 
 The three persisted contradictions are all runway mismatches (18mo vs 9mo, 18mo vs 24mo, 9mo vs 24mo). Deal-specific values like `deal_value_acv` and `budget_authority_threshold` are intentionally excluded from numeric contradiction detection because a different customer's deal size is a data point, not a contradiction.
 
+**Note on fact count reproducibility:** Anthropic's own documentation states that temperature=0 "will not be fully deterministic" — Claude ships no seed parameter, so variable batch composition on shared inference servers can produce minor token-level variance between runs. The per-document fact counts above may vary by a small number of facts if you re-run `seed.py`. The contradiction set (three runway mismatches) and the Q3 answer are stable regardless, because they are driven by the numeric values in the source documents, not by marginal extraction decisions.
+
 ---
 
 ## Run — one command
