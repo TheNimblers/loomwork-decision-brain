@@ -1,0 +1,86 @@
+[
+  {
+    "id": "northpeak-may",
+    "title": "Investor Update — May 2026 (Northpeak Series A)",
+    "source_type": "investor_update",
+    "document_date": "2026-05-28",
+    "content": "Investor Update — May 2026\nLoomwork, Inc.\nTo: Northpeak Capital, Board of Directors\nFrom: Maya Chen, CEO\nDate: 28 May 2026\n\nExecutive Summary\nLoomwork continues to make progress in the AI ops copilot space for logistics teams. We closed the Series A with Northpeak in March and have since scaled the team to 12 full-time employees, with a core engineering team of 6 engineers.\n\nTeam & Operations\nWe have grown the team to 12 people. The core engineering team is 6 engineers. We are planning to hire 2 additional Account Executives in Q3 to accelerate the enterprise pipeline.\n\nFinancial Position\nWe closed Q2 with €840,000 in the bank. Monthly burn is approximately €47,000. We have 18 months of runway at current burn. ARR is at €380,000, growing 15% month-over-month.\n\nPipeline\nEnterprise pipeline stands at €1.2M in qualified opportunities. Three deals in final negotiation stage. Largest opportunity is €280,000 ARR with a logistics firm in Rotterdam.\n\nICP & Strategy\nWe are moving upmarket. The mid-market self-serve motion remains active but the majority of new qualified pipeline is enterprise. Minimum deal size for new enterprise targets is being raised to €25,000.\n"
+  },
+  {
+    "id": "board-q2",
+    "title": "Board Note — Q2 Runway and Hiring Decision",
+    "source_type": "board_note",
+    "document_date": "2026-06-10",
+    "content": "Board Note — Q2 Runway and Hiring Decision\nPrepared by: Devin Park, CTO\nDate: 10 June 2026\n\nRunway Clarification\nFollowing the investor update, I want to flag a calculation that needs board attention. The 18-month runway figure in the investor update does not account for the two AE hires planned for Q3. Once those hires go through — assuming start dates in August — we are looking at 9 months of runway, not 18. Each AE is budgeted at €85,000 fully loaded annual cost. This changes our fundraising timeline materially. We need to open a seed extension conversation before end of August.\n\nHiring Decision\nThe two AE hires were approved in principle at the last board meeting. Start dates are targeted for August. The fully loaded cost per AE is €85,000 per year including base, commission, and tools.\n\nAction items:\n- CEO to initiate conversations with 3 existing investors about bridge or seed extension\n- CFO to prepare updated burn model with and without AE hires\n- Decision on AE hire timing to be revisited at next board meeting\n"
+  },
+  {
+    "id": "maya-tweet-0612",
+    "title": "Maya Chen Tweet — June 12 2026",
+    "source_type": "social_post",
+    "document_date": "2026-06-12",
+    "content": "Maya Chen (@mayachen_loomwork) — June 12, 2026\n\nMid-market teams are the best fit for Loomwork right now. Self-serve onboarding, clear ROI in the first week, and no enterprise procurement cycle. That is where we win.\n\nWe are not chasing Fortune 500 logos. We are making ops teams at 50-500 person logistics companies look like heroes.\n"
+  },
+  {
+    "id": "acme-eval",
+    "title": "Customer Call — Acme Freight Evaluation",
+    "source_type": "call_transcript",
+    "document_date": "2026-06-03",
+    "content": "Call Transcript — Acme Freight Evaluation\nDate: 3 June 2026\nAttendees: Priya Nair (Loomwork), Jordan Rivera (Acme Freight)\n\nJordan Rivera: We are evaluating a few tools for our ops team. Our total budget for this category is around €10,000 for the year. Anything above that goes to procurement.\n\nPriya Nair: Understood. Loomwork is priced at €8,000 per year for a team your size.\n\nJordan Rivera: That fits. We also looked at FreightPilot. They quoted about €6,000 but their onboarding looks heavier. Our ops lead is sceptical.\n\nPriya Nair: FreightPilot is cheaper upfront but the implementation time is longer. Most of our customers switch because of the time-to-value.\n\nJordan Rivera: Decision authority sits with me for anything under €10,000. I will run the pilot with my team and come back by mid-June.\n\nPriya Nair: Perfect. I will send the pilot terms today.\n"
+  },
+  {
+    "id": "brightway-call",
+    "title": "Sales Call — Brightway Logistics",
+    "source_type": "call_transcript",
+    "document_date": "2026-05-14",
+    "content": "Call Transcript — Brightway Logistics\nDate: 14 May 2026\nAttendees: Priya Nair (Loomwork), Ops Director (Brightway Logistics)\n\nOps Director: We are comparing Loomwork and FreightPilot for our dispatch team. FreightPilot came in about 30% cheaper than your quote.\n\nPriya Nair: Can you share the numbers?\n\nOps Director: FreightPilot is quoting €5,600 per year. Your quote is €8,000. That is roughly a 30% gap.\n\nPriya Nair: I see. The difference is that our pilot includes setup and training. FreightPilot typically charges extra for implementation.\n\nOps Director: My budget ceiling is €12,000 for this category, so both fit. But I need to justify the premium to finance.\n\nPriya Nair: I can send a case study from a similar customer that saw payback in 6 weeks.\n\nOps Director: Please do. I have decision authority for spend under €12,000.\n"
+  },
+  {
+    "id": "delta-logix-call",
+    "title": "Account Review — Delta Logix",
+    "source_type": "call_transcript",
+    "document_date": "2026-06-17",
+    "content": "Call Transcript — Delta Logix Account Review\nDate: 17 June 2026\nAttendees: Priya Nair (Loomwork), Procurement Lead (Delta Logix)\n\nProcurement Lead: We are moving Loomwork to a formal evaluation. Our budget authority threshold is €15,000. Anything below that is approved by my team.\n\nPriya Nair: Our proposed annual contract is €14,000.\n\nProcurement Lead: That is within range. We also have FreightPilot on our approved vendor list. They are pushing hard for the same use case.\n\nPriya Nair: FreightPilot is on your list? That is useful to know. What is their main advantage from your perspective?\n\nProcurement Lead: They are already approved, so legal is faster. But their product is not as tailored to dispatch. We will run both pilots in parallel.\n\nPriya Nair: I will coordinate with your team.\n"
+  },
+  {
+    "id": "synapse-call",
+    "title": "Follow-up Call — Synapse Logistics",
+    "source_type": "call_transcript",
+    "document_date": "2026-06-24",
+    "content": "Call Transcript — Synapse Logistics Follow-up\nDate: 24 June 2026\nAttendees: Priya Nair (Loomwork), VP Operations (Synapse Logistics)\n\nVP Operations: We want to move forward but the budget is not unlocked until July cycle. The ceiling for my discretionary approval is €12,000.\n\nPriya Nair: Our quote is €11,500 per year.\n\nVP Operations: That fits. I need sign-off from finance, but anything under €12,000 is usually a formality.\n\nPriya Nair: Great. Can we schedule the pilot kickoff for the first week of July?\n\nVP Operations: Yes. The only other vendor still in the mix is FreightPilot. They are cheaper but less specific to logistics workflows. I think we will go with you if the pilot is clean.\n\nPriya Nair: I will send the pilot agreement today.\n"
+  },
+  {
+    "id": "atlas-q1",
+    "title": "Investor Update — Q1 2026 (Atlas Ventures)",
+    "source_type": "investor_update",
+    "document_date": "2026-04-02",
+    "content": "Investor Update — Q1 2026\nLoomwork, Inc.\nTo: Atlas Ventures, Seed Investors\nFrom: Maya Chen, CEO\nDate: 2 April 2026\n\nQ1 Highlights\n- Team size: 8 people\n- Monthly burn: €38,000\n- Cash on hand: €920,000\n- Runway: 24 months at current burn\n- ARR: €240,000\n\nProduct & Market\nOur ICP remains mid-market logistics companies in the 50-500 employee range. The self-serve motion is the primary acquisition channel. We are not yet focused on enterprise.\n\nUse of Funds\nThe seed round is funding product and engineering. We plan to add 2 engineers in Q2 and begin a light sales experiment in Q3.\n"
+  },
+  {
+    "id": "maya-weekly-jun20",
+    "title": "Maya Weekly Note — ICP Decision June 20",
+    "source_type": "internal_note",
+    "document_date": "2026-06-20",
+    "content": "Maya Weekly Note — ICP Decision\nDate: 20 June 2026\nAuthor: Maya Chen\n\nWe have a real ICP drift discussion happening. The team is split.\n\nWhat I believe:\n- The tweet I posted this week is true: mid-market self-serve is where we win today.\n- The Northpeak update says we are moving upmarket. That is investor-facing language.\n- The minimum deal size for new enterprise targets needs to be €25,000 or we will waste sales cycles.\n\nDecision for next 30 days:\n- Keep the self-serve motion as the primary channel.\n- Run an enterprise experiment with a €25,000 minimum.\n- Do not reposition the entire company until we have 3 enterprise closes.\n\nOpen question: are we actually moving upmarket, or are we just trying to sound like we are?\n"
+  },
+  {
+    "id": "priya-pipeline-jun25",
+    "title": "Pipeline Update — Priya Nair June 25",
+    "source_type": "internal_email",
+    "document_date": "2026-06-25",
+    "content": "From: Priya Nair\nTo: Maya Chen, Devin Park\nDate: 25 June 2026\nSubject: Pipeline Update — 4 deals, 3 blocked by budget authority\n\nHi team,\n\nQuick pipeline update. We have 4 active evaluation deals. Three are blocked by budget authority thresholds:\n\n1. Acme Freight — €8,000 quote. Buyer has authority up to €10,000. Moving to pilot.\n2. Brightway Logistics — €8,000 quote. Buyer has authority up to €12,000. Waiting on case study.\n3. Delta Logix — €14,000 quote. Buyer has authority up to €15,000. Approved vendor list includes FreightPilot.\n4. Synapse Logistics — €11,500 quote. Buyer has authority up to €12,000. Budget unlocks in July.\n\nPattern: budget authority is the blocker in 3 out of 4 deals. None of the deals exceed the buyer's ceiling, but the approval process is still adding friction. FreightPilot is mentioned in every deal as the cheaper alternative.\n\nNext step: I will consolidate the objections and draft a one-page budget authority battlecard.\n\nPriya\n"
+  },
+  {
+    "id": "freightmax-call",
+    "title": "Lost Deal Debrief — FreightMax Nordic",
+    "source_type": "call_transcript",
+    "document_date": "2026-06-19",
+    "content": "Lost Deal Debrief — FreightMax Nordic\nDate: 19 June 2026\nAttendees: Priya Nair (Loomwork), Former Champion (FreightMax Nordic)\n\nFormer Champion: I wanted to give you honest feedback. We went with FreightPilot.\n\nPriya Nair: I appreciate that. What was the deciding factor?\n\nFormer Champion: Price. FreightPilot was €30,000 cheaper over three years. That was the entire conversation in procurement.\n\nPriya Nair: €30,000 cheaper? That is a large gap.\n\nFormer Champion: They have a Nordics-specific bundle. Your product is better for our workflows but I could not defend the premium to finance.\n\nPriya Nair: Was there anything we could have done differently?\n\nFormer Champion: A clearer ROI case and a budget authority note. Our buyer's threshold was €15,000 and your three-year quote was well above it.\n\nPriya Nair: Thank you. This is very helpful.\n"
+  },
+  {
+    "id": "sam-vora-email",
+    "title": "Sam Vora Email — Runway and ICP Alignment",
+    "source_type": "email",
+    "document_date": "2026-06-13",
+    "content": "From: Sam Vora\nTo: Maya Chen\nDate: 13 June 2026\nSubject: Runway and ICP Alignment\n\nHi Maya,\n\nQuick note after reading the May investor update and your tweet this week.\n\nRunway: The 18-month figure is helpful but I want to make sure it is net of the AE hires. If the board note is right, the real number is closer to 9 months. I would not present the 18-month figure to new investors without the AE caveat.\n\nICP: The update says upmarket, the tweet says mid-market. These are not the same. I can defend either strategy to a lead, but I need you to pick one in the next update.\n\nHappy to jump on a call.\n\nSam\n"
+  }
+]
