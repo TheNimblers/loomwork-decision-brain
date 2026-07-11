@@ -67,19 +67,21 @@ The spec says: "If Pydantic validation fails on an extracted fact, raise." I ins
 
 **Defense:** The available model occasionally emits malformed numeric pairs (e.g., `deal_stage` with `numeric_value=3` and `numeric_unit=null`). Raising would crash the whole seed on every document that triggers this mistake. Dropping keeps the pipeline resilient without creating ghost data. The drops are logged and visible in the seed output.
 
+Separately, I found one fact that sits in a grey zone: fact #3 in the `runway_months` set, extracted from the Board Note, has `numeric_value=18.0` and a claim that reads "The 18-month runway figure in the investor update does not account for the two AE hires planned for Q3." That is a reference to the Northpeak investor update's number, not an independent assertion of a new runway figure. I left it in deliberately: removing it does not change the contradiction set, because the 18mo vs 9mo pairing is already captured independently by the Northpeak update (#2) and the board note's own 9-month assertion (#4). Fixing the extraction prompt to distinguish assertion from reference is real work that would not move any output for this corpus. I chose not to spend remaining time on it.
+
 ### 3.3 Contradiction detection is scoped to the Q3 metric
 
-The spec's example algorithm compares any two facts of the same `fact_type` with a numeric difference >10%. Applied naively, this flags every deal with a different ACV or every customer with a different budget threshold as a contradiction. For this corpus, that produced 114 contradictions, which drowns the runway signal.
+The spec's example algorithm compares any two facts of the same `fact_type` with a numeric difference >10%. The initial phase-3 implementation did exactly this — no scoping. Running the full seed with that logic produced 114 contradictions: every deal with a different ACV, every customer with a different budget threshold, all flagged. That number appeared in the seed output and immediately showed the signal was buried.
 
-I scoped `detect_contradictions()` to globally-comparable, company-wide metrics and added value-pair deduplication so the same numeric conflict is recorded once regardless of how many sources repeat it:
+I then added `GLOBALLY_SCOPED_TYPES` and value-pair deduplication as a second step, after seeing the output, not before:
 
 ```python
 GLOBALLY_SCOPED_TYPES = {"runway_months"}
 ```
 
-For this corpus the result is three persisted runway contradictions: 18mo vs 9mo, 18mo vs 24mo, and 9mo vs 24mo. Deal-specific values (`deal_value_acv`, `budget_authority_threshold`) are not contradictions — they are data points per customer.
+That fix is in commit `431375f`. After re-seeding with the scoped logic, the result was three persisted runway contradictions: 18mo vs 9mo, 18mo vs 24mo, and 9mo vs 24mo — a genuine three-point declining trend (24 → 18 → 9 months, Q1 Atlas to May Northpeak to June board note post-hire) that I hadn't anticipated would exist when I started the seed. Deal-specific values (`deal_value_acv`, `budget_authority_threshold`) are not contradictions — they are data points per customer.
 
-**Defense:** The Q3 demo is about runway. A contradiction panel with 114 rows hides the signal. Scoping to the relevant metric and deduplicating by value pair keeps the UI clean while still capturing the runway conflict that drives the recommendation.
+**Defense:** The scoping rule came from observation, not pre-planning: I ran the naive algorithm, saw 114 rows, recognized the problem, and narrowed to company-wide metrics. The three-way declining trend was a discovery, not a design target. That sequence is more honest than presenting the result as pre-planned, and it is also a better demonstration of what the system is actually for — it found something real.
 
 ### 3.4 ICP contradiction is surfaced in synthesis, not stored as a DB row
 
@@ -123,6 +125,7 @@ If the system cannot handle a runway contradiction that the board already wrote 
 4. **Multi-tenancy and auth** — add `organization_id`, RBAC, and API keys for production deployment.
 5. **Frontline React app** — replace the vanilla UI with a proper React dashboard once the API contract is locked.
 6. **MCP server** — expose the decision brain as an MCP tool so other agents can call it natively.
+7. **Assertion vs. reference extraction** — the extraction prompt does not yet distinguish a document *asserting* a numeric value from a document *referencing* a value stated elsewhere. Fact #3 in the runway set is a reference that was extracted as an assertion. For this corpus the contradiction set is unaffected, but the distinction matters at scale and should be built into the schema (e.g., a `is_reference` flag on `facts`) and the extraction prompt.
 
 ---
 
