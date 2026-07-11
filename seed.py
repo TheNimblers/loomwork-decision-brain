@@ -1,36 +1,31 @@
 import json
-import sys
 import time
-import urllib.error
-import urllib.request
 
-BASE_URL = "http://localhost:8090/brain"
-
-
-def post_ingest(item: dict) -> dict:
-    payload = json.dumps({
-        "title":         item["title"],
-        "source_type":   item["source_type"],
-        "content":       item["content"],
-        "document_date": item.get("document_date")
-    }).encode()
-    req = urllib.request.Request(
-        f"{BASE_URL}/ingest",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read())
+from db import get_db, init_db
+from entities import seed_entities
+from ingest import ingest_document
+from models import IngestRequest
 
 
 def main():
+    init_db()
+    db = get_db()
+    seed_entities(db)
+    db.close()
+
     with open("data/loomwork_corpus.json") as f:
         items = json.load(f)
     print(f"Seeding {len(items)} documents...\n")
+
     total_facts, total_contradictions = 0, 0
     for i, item in enumerate(items, 1):
-        result = post_ingest(item)
+        req = IngestRequest(
+            title=item["title"],
+            source_type=item["source_type"],
+            content=item["content"],
+            document_date=item.get("document_date"),
+        )
+        result = ingest_document(req)
         facts = result.get("facts_extracted", 0)
         contras = result.get("contradictions_detected", 0)
         total_facts += facts

@@ -106,7 +106,7 @@ pip install -r requirements.txt
 python seed.py
 ```
 
-Reads `data/loomwork_corpus.json` and ingests all 12 corpus documents in order. Requires the server to be running.
+Reads `data/loomwork_corpus.json` and ingests all 12 corpus documents in order. Run before starting the server.
 
 ---
 
