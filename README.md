@@ -108,6 +108,29 @@ python seed.py
 
 Reads `data/loomwork_corpus.json` and ingests all 12 corpus documents in order. Run before starting the server.
 
+Actual output from this build:
+
+```
+Seeding 12 documents...
+
+  OK [ 1/12] Investor Update — May 2026 (Northpeak Series A)       13 facts, 5 contradictions <- contradiction [HIGH]
+  OK [ 2/12] Board Note — Q2 Runway and Hiring Decision            9 facts, 2 contradictions <- contradiction [HIGH]
+  OK [ 3/12] Maya Chen Tweet — June 12 2026                        4 facts, 0 contradictions
+  OK [ 4/12] Customer Call — Acme Freight Evaluation               9 facts, 1 contradictions <- contradiction [HIGH]
+  OK [ 5/12] Sales Call — Brightway Logistics                      9 facts, 7 contradictions <- contradiction [HIGH]
+  OK [ 6/12] Account Review — Delta Logix                          9 facts, 12 contradictions <- contradiction [HIGH]
+  OK [ 7/12] Follow-up Call — Synapse Logistics                    9 facts, 13 contradictions <- contradiction [HIGH]
+  OK [ 8/12] Investor Update — Q1 2026 (Atlas Ventures)            8 facts, 8 contradictions <- contradiction [HIGH]
+  OK [ 9/12] Maya Weekly Note — ICP Decision June 20               5 facts, 2 contradictions <- contradiction [HIGH]
+  OK [10/12] Pipeline Update — Priya Nair June 25                  14 facts, 45 contradictions <- contradiction [HIGH]
+  OK [11/12] Lost Deal Debrief — FreightMax Nordic                 8 facts, 13 contradictions <- contradiction [HIGH]
+  OK [12/12] Sam Vora Email — Runway and ICP Alignment             7 facts, 6 contradictions <- contradiction [HIGH]
+
+Seed complete. 12 sources 104 facts 114 contradictions detected.
+```
+
+(The high contradiction count is a side effect of the deterministic numeric comparison: any two facts of the same type with >10% difference are flagged. The runway contradiction — 18 months vs 9 months — is present and used by the Q3 answer.)
+
 ---
 
 ## Run — one command
@@ -137,6 +160,28 @@ curl -X POST http://localhost:8090/brain/decisions/{id}/decide \
   -H "Content-Type: application/json" \
   -d '{"decision": "approved", "note": "Confirmed with Devin — use 9-month figure with AE caveat"}'
 ```
+
+**Actual Q3 response from this build:**
+
+```json
+{
+  "decision_id": "2f6568a5-1e06-4a09-b7c8-004d35de166d",
+  "synthesis": "You cannot defend 18 months of runway in this week's investor update...",
+  "confidence": 0.68,
+  "recommended_action": "Call your CFO today to confirm the exact post-hire monthly burn rate and cash balance, then update the investor deck to state '9 months of runway post-Q3 AE hires' before sending this week's update.",
+  "open_gaps": [
+    "Exact monthly burn rate after the two AE hires start in August",
+    "Current cash balance as of this week",
+    "Whether the AE hiring decision is final or still reversible",
+    "Any revenue assumptions or other offsets that might extend the 9-month figure"
+  ],
+  "key_contradiction": "The May investor update claims 18 months of runway at current burn, but the June board note states this excludes planned Q3 AE hires, reducing actual runway to 9 months.",
+  "research_triggered": true,
+  "sources_cited": [...]
+}
+```
+
+The full synthesis explains that 18 months is the pre-hire figure, the June 10 board note revises it to 9 months post-hire, and Sam Vora has flagged the discrepancy. The defensible number is **9 months of runway post-Q3 AE hires**, with the caveat that the CFO must confirm the exact post-hire burn rate.
 
 ---
 
