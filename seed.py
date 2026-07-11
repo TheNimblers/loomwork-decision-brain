@@ -13,7 +13,7 @@ def main():
     seed_entities(db)
     db.close()
 
-    with open("data/loomwork_corpus.json") as f:
+    with open("data/loomwork_corpus.json", encoding="utf-8") as f:
         items = json.load(f)
     print(f"Seeding {len(items)} documents...\n")
 
