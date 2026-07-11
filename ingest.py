@@ -1,6 +1,7 @@
 import anthropic
 import hashlib
 import json
+import logging
 import os
 
 from db import get_db, content_hash, now_iso
@@ -8,6 +9,7 @@ from entities import link_entities_to_fact
 from models import ExtractedFact, ExtractionResult, IngestRequest
 from prompts import EXTRACTION_SYSTEM_PROMPT
 
+logger = logging.getLogger(__name__)
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
@@ -21,7 +23,7 @@ Date: {document_date or 'unknown'}
 {content}
 ---"""
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-5-20250929",
         max_tokens=4096,
         temperature=0,
         system=EXTRACTION_SYSTEM_PROMPT,
@@ -34,7 +36,14 @@ Date: {document_date or 'unknown'}
             raw = raw[4:]
         raw = raw.strip()
     data = json.loads(raw)
-    return ExtractionResult(**data)
+    raw_facts = data.get("facts", []) if isinstance(data, dict) else []
+    valid_facts: list[ExtractedFact] = []
+    for idx, raw_fact in enumerate(raw_facts):
+        try:
+            valid_facts.append(ExtractedFact(**raw_fact))
+        except Exception as e:
+            logger.warning("Dropping invalid fact %d from %s: %s", idx, title, e)
+    return ExtractionResult(facts=valid_facts)
 
 
 def detect_contradictions(new_fact_id: str, ef: ExtractedFact, db, source_title: str) -> list[dict]:

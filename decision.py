@@ -51,7 +51,7 @@ Retrieved facts ({len(facts)} total):
 Contradictions detected ({len(contradictions)} total):
 {contradictions_block}"""
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-5-20250929",
         max_tokens=2048,
         temperature=0,
         system=SYNTHESIS_SYSTEM_PROMPT,
