@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loomwork Decision Brain</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0f0f0f; color: #fff; line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 20px; font-size: 24px; }
+    h2 { font-size: 18px; margin: 0 0 12px; color: #ddd; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .panel { background: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333; }
+    .panel.full { grid-column: 1 / -1; }
+    label { display: block; margin: 10px 0 4px; color: #aaa; font-size: 14px; }
+    input, textarea, select { width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 8px; font-family: inherit; }
+    textarea { min-height: 120px; resize: vertical; }
+    button { background: #B84800; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: 600; }
+    button:hover { background: #d45200; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge.green { background: #1f6f1f; }
+    .badge.amber { background: #b8860b; }
+    .badge.red { background: #8b1a1a; }
+    .citation { color: #B84800; font-family: monospace; font-size: 13px; }
+    .contradiction { background: #2a1a10; border-left: 4px solid #B84800; padding: 12px; margin: 12px 0; }
+    .quote { color: #ccc; font-style: italic; margin: 6px 0; }
+    .decision { border-top: 1px solid #333; padding: 12px 0; }
+    .actions { margin-top: 8px; }
+    .actions button { margin-right: 8px; }
+    .muted { color: #888; font-size: 14px; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Loomwork Decision Brain</h1>
+    <div class="grid">
+      <div class="panel">
+        <h2>Ingest</h2>
+        <label>Title</label>
+        <input id="title" value="Manual document">
+        <label>Source type</label>
+        <select id="source_type">
+          <option>board_note</option>
+          <option>investor_update</option>
+          <option>call_transcript</option>
+          <option>internal_email</option>
+          <option>email</option>
+        </select>
+        <label>Date</label>
+        <input id="doc_date" type="date">
+        <label>Content</label>
+        <textarea id="content" placeholder="Paste document content here..."></textarea>
+        <button onclick="ingest()">Ingest</button>
+        <div id="ingest_result"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Query</h2>
+        <label>Question</label>
+        <textarea id="question">What runway can I defend in this week's investor update?</textarea>
+        <button onclick="query()">Ask</button>
+        <div id="query_result"></div>
+      </div>
+
+      <div class="panel full">
+        <h2>Contradictions</h2>
+        <div id="contradictions">No contradictions loaded.</div>
+      </div>
+
+      <div class="panel full">
+        <h2>Decision Log</h2>
+        <div id="decisions">No decisions loaded.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/brain';
+
+    async function ingest() {
+      const payload = {
+        title: document.getElementById('title').value,
+        source_type: document.getElementById('source_type').value,
+        content: document.getElementById('content').value,
+        document_date: document.getElementById('doc_date').value || null
+      };
+      const res = await fetch(`${API}/ingest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      document.getElementById('ingest_result').innerHTML = `<p class="muted">${data.facts_extracted} facts extracted, ${data.contradictions_detected} contradictions. Already existed: ${data.already_existed}</p>`;
+      loadContradictions();
+    }
+
+    function badgeClass(conf) {
+      if (conf >= 0.70) return 'green';
+      if (conf >= 0.50) return 'amber';
+      return 'red';
+    }
+
+    function renderSynthesis(text) {
+      return text.replace(/\[([a-f0-9]+)\]/g, '<span class="citation">[$1]</span>');
+    }
+
+    async function query() {
+      const q = document.getElementById('question').value;
+      const res = await fetch(`${API}/query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+      const data = await res.json();
+      let html = `<p><span class="badge ${badgeClass(data.confidence)}">Confidence: ${data.confidence}</span> ${data.research_triggered ? '<span class="badge">Tavily researched</span>' : ''}</p>`;
+      html += `<p><strong>Recommended action:</strong> ${data.recommended_action}</p>`;
+      if (data.key_contradiction) html += `<div class="contradiction"><strong>Key contradiction:</strong> ${data.key_contradiction}</div>`;
+      html += `<pre>${renderSynthesis(data.synthesis)}</pre>`;
+      if (data.open_gaps && data.open_gaps.length) html += `<p class="muted"><strong>Open gaps:</strong> ${data.open_gaps.join('; ')}</p>`;
+      document.getElementById('query_result').innerHTML = html;
+      loadDecisions();
+    }
+
+    async function loadContradictions() {
+      const res = await fetch(`${API}/contradictions`);
+      const cs = await res.json();
+      if (!cs.length) return document.getElementById('contradictions').innerText = 'No contradictions.';
+      const c = cs[0];
+      document.getElementById('contradictions').innerHTML = `
+        <div class="contradiction">
+          <strong>${c.severity.toUpperCase()}:</strong> ${c.description}<br>
+          <div class="quote">A: ${c.fact_a_quote}</div>
+          <div class="quote">B: ${c.fact_b_quote}</div>
+        </div>
+        <p class="muted">${cs.length} contradiction(s) total.</p>
+      `;
+    }
+
+    async function decide(id, decision, btn) {
+      btn.disabled = true;
+      const res = await fetch(`${API}/decisions/${id}/decide`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision }) });
+      const data = await res.json();
+      if (!res.ok) { alert(data.detail || 'Error'); btn.disabled = false; }
+      loadDecisions();
+    }
+
+    async function loadDecisions() {
+      const res = await fetch(`${API}/decisions`);
+      const ds = await res.json();
+      const el = document.getElementById('decisions');
+      if (!ds.length) return el.innerText = 'No decisions.';
+      el.innerHTML = ds.map(d => `
+        <div class="decision">
+          <strong>${new Date(d.created_at).toLocaleString()}</strong>
+          <span class="badge ${d.human_decision ? 'green' : 'amber'}">${d.human_decision || 'pending'}</span>
+          <p class="muted">${d.question}</p>
+          <p>${renderSynthesis(d.synthesis.substring(0, 200))}...</p>
+          ${d.human_decision ? '' : `<div class="actions"><button onclick="decide('${d.id}', 'approved', this)">Approve</button><button onclick="decide('${d.id}', 'rejected', this)">Reject</button></div>`}
+        </div>
+      `).join('');
+    }
+
+    loadContradictions();
+    loadDecisions();
+  </script>
+</body>
+</html>
