@@ -1,0 +1,11 @@
+.env
+.env.example
+brain.db
+decisions.jsonl
+results.html
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git
+.gitignore
