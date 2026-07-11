@@ -119,15 +119,23 @@
       const res = await fetch(`${API}/contradictions`);
       const cs = await res.json();
       if (!cs.length) return document.getElementById('contradictions').innerText = 'No contradictions.';
-      const c = cs[0];
-      document.getElementById('contradictions').innerHTML = `
+      // Sort: smallest min-value first; tiebreak by smaller max-value first.
+      // Result: (18 vs 9) → (9 vs 24) → (18 vs 24). The direct Northpeak→BoardNote pair leads.
+      const sorted = [...cs].sort((a, b) => {
+        const minA = Math.min(a.fact_a_value ?? Infinity, a.fact_b_value ?? Infinity);
+        const minB = Math.min(b.fact_a_value ?? Infinity, b.fact_b_value ?? Infinity);
+        if (minA !== minB) return minA - minB;
+        const maxA = Math.max(a.fact_a_value ?? 0, a.fact_b_value ?? 0);
+        const maxB = Math.max(b.fact_a_value ?? 0, b.fact_b_value ?? 0);
+        return maxA - maxB;
+      });
+      document.getElementById('contradictions').innerHTML = sorted.map(c => `
         <div class="contradiction">
           <strong>${c.severity.toUpperCase()}:</strong> ${c.description}<br>
           <div class="quote">A: ${c.fact_a_quote}</div>
           <div class="quote">B: ${c.fact_b_quote}</div>
         </div>
-        <p class="muted">${cs.length} contradiction(s) total.</p>
-      `;
+      `).join('') + `<p class="muted">${cs.length} contradiction(s) total.</p>`;
     }
 
     async function decide(id, decision, btn) {

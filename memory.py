@@ -107,8 +107,10 @@ def get_all_contradictions() -> list[dict]:
         rows = db.execute(
             """SELECT c.*,
                    fa.claim as fact_a_claim, fa.verbatim_quote as fact_a_quote,
+                   fa.numeric_value as fact_a_value, fa.numeric_unit as fact_a_unit,
                    sa.title as source_a_title,
                    fb.claim as fact_b_claim, fb.verbatim_quote as fact_b_quote,
+                   fb.numeric_value as fact_b_value, fb.numeric_unit as fact_b_unit,
                    sb.title as source_b_title
                 FROM contradictions c
                 JOIN facts fa ON c.fact_a_id = fa.id JOIN sources sa ON fa.source_id = sa.id

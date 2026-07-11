@@ -33,7 +33,7 @@ app.mount("/brain/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/brain/")
 async def ui():
-    return FileResponse("static/index.html")
+    return FileResponse("static/index.html", media_type="text/html; charset=utf-8")
 
 
 @app.get("/brain/healthz")
