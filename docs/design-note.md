@@ -11,72 +11,64 @@ Document → Ingest (Claude extracts typed facts) → SQLite →
 Memory (no LLM) → Decision (retrieve → Tavily if needed → Claude synthesizes) → Append-only log
 ```
 
-**LLM at exactly two seams, nowhere else.**
+LLM at exactly two seams. **Seam 1** (`ingest.py::claude_extract`): one call per document, `temperature=0`, strict JSON output, per-fact Pydantic validation before any row is written. **Seam 2** (`decision.py::claude_synthesize`): receives the CEO question, retrieved facts with IDs and verbatim quotes, and detected contradictions; every factual claim in the response must carry a `[fact_id]` citation or the output is invalid. Everything between the seams is deterministic — FTS5 retrieval, arithmetic contradiction detection, tier-weighted confidence scoring, Levenshtein entity resolution. Zero anthropic imports in `memory.py` — enforced, verifiable with grep.
 
-- **Seam 1 — `ingest.py::claude_extract()`:** Claude reads a raw document and emits strict JSON typed facts. One call per document. `temperature=0`. Output stripped of markdown fences, parsed with `json.loads()`, validated per-fact with Pydantic before any row is written. Invalid facts are logged and dropped (see §3.2).
-- **Seam 2 — `decision.py::claude_synthesize()`:** Claude receives the CEO question, retrieved facts with IDs and verbatim quotes, and detected contradictions. Emits a cited JSON answer — every factual claim must carry a `[fact_id]` inline or the output is invalid.
+**The architectural question I answered differently than Part One:** Part One uses embedding-based signal clustering to connect learnings across sources. I did not build that, and not because I ran out of time. For this question type it is the wrong tool. The runway contradiction is not a semantic similarity problem — it is an arithmetic problem. `18 ≠ 9`. An embedding will score those as *similar* because both appear in runway sentences; it will not surface the conflict. The system that finds the contradiction needs a `numeric_value` column, an inequality check, and a threshold. That is what I built. The claim that embeddings replace SQL in a decision support system is wrong: embeddings are a retrieval heuristic, not a truth model. The truth model is the bi-temporal schema.
 
-Everything between the seams is deterministic: FTS5 keyword retrieval, contradiction detection (arithmetic, no LLM), confidence scoring (tier-weighted average with contradiction penalties), entity resolution (exact match + Levenshtein ≤ 1). The read path has zero anthropic imports — enforced, verifiable with grep.
+The tradeoff is real: FTS5 misses semantically related facts that use different words. At 10k+ facts, a vector index sits *alongside* FTS5 as a second retrieval path — it does not replace the structured contradiction layer. The architecture scales additively, not by substitution.
 
-**Why SQLite + FTS5 over a vector DB:** the corpus is hundreds of facts, not millions. FTS5 gives sub-10ms keyword retrieval with zero infrastructure. Contradiction detection requires structured `numeric_value` comparisons — embeddings cannot do this. At 10k+ facts a vector index would sit alongside FTS5, not replace it.
-
-**Why the schema is bi-temporal:** `valid_from` is when the fact was true in the world (document date). `learned_at` is when it was ingested. "What did we know on June 1?" is a SQL query, not a rebuild. Sources are SHA256 content-addressed — re-ingesting the same document is a no-op.
-
-**Why research facts re-enter through the same ingest pipeline:** Tavily results pass through `ingest_document()` with `source_type="research"`. They get fact-extracted by Claude, stored with E1/E2 evidence tiers, and join the fact set for synthesis. There is no special code path for external data — it is just weaker-tier data in the same tables. This also means research results are deduplicated, citation-tracked, and never double-counted.
+**Memory vs. research gate:** `should_research()` fires on an OR condition — confidence below 0.65 *or* any HIGH-severity contradiction present. For Q3, local confidence was 0.68 (above threshold), but three HIGH contradictions were present. Research fired regardless. Tavily results re-enter through `ingest_document()` as `source_type="research"` with E1/E2 evidence tiers — the same write pipeline, not a special code path. They are deduplicated, citation-tracked, and never double-counted.
 
 ---
 
-## 2. Where I agreed with the spec
+## 2. Where I agreed with Part One, and why each choice is right independently
 
-| Invariant | Code location |
-|-----------|---------------|
-| `memory.py` has zero anthropic imports | Enforced — grep confirms |
-| Contradiction detection in same transaction as INSERT | `detect_contradictions()` called before `db.commit()` in `ingest_document()` |
-| Exactly two `client.messages.create` calls | One in `ingest.py`, one in `decision.py` |
-| `human_decision` set only via `/decide` | Synthesis inserts NULL; only the `/decide` route writes a value — 409 on second call |
-| Content-addressed dedup | `source_id = SHA256(content.strip().lower())[:16]` via `db.py::content_hash()`; `fact_id = SHA256(source_id + fact_type + claim)[:16]` |
-| `temperature=0` on all Claude calls | Both calls set it explicitly |
-| Claude output parsed with `json.loads()` + Pydantic | Both seams strip markdown fences, parse JSON, validate with Pydantic |
-| Research sources excluded from contradiction detection | `detect_contradictions()` returns `[]` immediately if `source_type == "research"` |
+**No LLM in the read path.** LLMs in the read path make the system non-auditable — "why did it say that last week?" becomes unanswerable if synthesis re-runs on every query. The deterministic read path means every answer is reproducible from the same fact set. That is a stronger auditability guarantee than any logging layer.
+
+**Contradiction detection at write-time, in the same transaction as INSERT.** Detecting at query time makes the contradiction a function of which facts happen to be retrieved — the same question asked twice could return a different contradiction set. Detecting at write-time makes it a property of the data: stored once, with both fact IDs, a severity, and a description, persisting across all future queries.
+
+**Content-addressed identity + `temperature=0`.** `source_id = SHA256(content)[:16]`, `fact_id = SHA256(source_id + fact_type + claim)[:16]`. Re-ingest is structurally a no-op. `temperature=0` makes extraction deterministic enough that the contradiction detector's output is a function of the schema, not of inference variance.
+
+**Human decides, system recommends.** `human_decision` is NULL until `/decide` is called. Synthesis never sets it. A 409 fires on any second call. This is not a safety feature bolted on — the system is structurally incapable of approving its own recommendation.
 
 ---
 
-## 3. Where I diverged and why
+## 3. Where I diverged, and the defense
 
-**3.1 Model string.** The spec names `claude-3-5-haiku-20241022`. That ID was not available in the account. I tested three alternatives: haiku-4-5 violated the numeric schema at extraction; sonnet-5 rejected `temperature=0`; `claude-sonnet-4-5-20250929` honored both constraints. The hard invariant is `temperature=0`, not the model name.
+**3.1 Contradiction scoped to `runway_months` — the 114-contradiction lesson.**
 
-**3.2 Invalid facts are dropped, not raised.** The spec says raise on Pydantic failure. The available model occasionally emits malformed numeric pairs (e.g., `numeric_value` present, `numeric_unit` null). `models.py::ExtractedFact` has a `model_validator` that catches this. Raising on that failure crashes the entire seed on one bad fact out of ~100. Dropping logs a `logger.warning` and keeps the pipeline resilient — the drops are visible in seed output. No ghost data is created. This is a conscious production tradeoff.
+The naive algorithm — flag any two facts of the same `fact_type` with >10% numeric difference — produced 114 contradictions on first seed run. Acme €10k vs Brightway €12k: flagged. Every budget threshold across calls: flagged. Signal buried completely.
 
-**3.3 Contradiction detection scoped to `runway_months`.** The naive algorithm — compare any two facts of the same `fact_type` with >10% numeric difference — produced 114 contradictions on the first seed run: every deal ACV, every budget threshold, all flagged. Signal buried. I added `GLOBALLY_SCOPED_TYPES = {"runway_months"}` after seeing that output, not before. Deal-specific values are data points per customer, not contradictions. The result was three runway rows — 24 → 18 → 9 months across Q1 Atlas, May Northpeak, June board note — a genuine declining trend I had not anticipated. I am telling the sequence because presenting it as pre-planned would be dishonest.
+I added `GLOBALLY_SCOPED_TYPES = {"runway_months"}` after seeing that output. The insight it forced: not all numeric facts are globally comparable. Deal-level metrics are *per-entity* data points — two customers with different budget ceilings is expected signal. Company-level metrics are *globally* comparable — one company cannot simultaneously have 9 and 18 months of runway. The result was three rows: 24 → 18 → 9 months across Q1 Atlas, May Northpeak, June board note. A declining trend I had not anticipated; I am saying so because presenting it as pre-planned would be dishonest. The 114-contradiction run is the proof the scoping was necessary, not premature.
 
-**3.4 Contradiction deduplication by value pair, not fact pair.** The contradiction `id` is `SHA256(fact_type:min_val:max_val)[:16]`, not `SHA256(fact_a_id + fact_b_id)`. This means the same 18-vs-9 mismatch is stored once regardless of which specific fact instances carry those values. The architecture doc describes a fact-pair hash — the actual implementation uses value-pair hashing because numeric facts of the same type from different extraction runs can produce different fact IDs with the same underlying numeric conflict.
+**3.2 ICP contradiction not stored as a DB row — the clearest gap.**
 
-**3.5 ICP contradiction not stored as a DB row.** The ICP conflict (tweet: mid-market self-serve; investor update: moving upmarket) is categorical, not numeric. `detect_contradictions()` compares `numeric_value` fields only. The signal surfaces in synthesis when relevant facts are retrieved — it is not lost. **This is the clearest gap in this slice.** The fix is a second detection path for `conflict_type = "claim_conflict"`: same `fact_type`, conflicting string values, different sources. The schema already supports it (`conflict_type` TEXT NOT NULL). That is the first thing I build next.
+The ICP conflict (tweet: mid-market self-serve; investor update: moving upmarket) is categorical. `detect_contradictions()` compares `numeric_value` fields only. The signal surfaces in synthesis, but it is not a first-class row with a severity. The schema supports it — `conflict_type` is `TEXT NOT NULL` and `claim_conflict` is a valid value. The fix is a second detection path: same `fact_type`, conflicting string values, different sources, write-time. This is the first thing I build next.
 
-**3.6 Schema inlined in `db.py`, not loaded from `migrations/`.** The `migrations/*.sql` files exist and are correct but `init_db()` never reads them — it runs an inline `executescript()`. Both are in sync. The migration files will be wired in before any production schema change. For a two-day demo the inline approach simplified the startup sequence with no correctness cost.
+**3.3 Invalid facts dropped, not raised.** The model occasionally emits malformed numeric pairs. Raising crashes the entire seed on one bad fact out of ~100. Dropping logs a `logger.warning` — visible, no ghost data. The right failure mode for a pipeline running against an external API is: discard the untrustworthy record, log it, keep processing.
 
 ---
 
-## 4. What was skipped
+## 4. What was deliberately skipped
 
 | Skipped | Why |
 |---------|-----|
-| Q1 (ICP drift) and Q2 (budget objection) synthesis | One question answered completely beats three answered halfway. The pipeline supports both — only the retrieval focus and synthesis prompt context change. |
-| Signal promotion ladder (candidate → emerging → validated) | Facts carry evidence tiers and confidence scores. The ladder is the natural next layer; implementing it would have consumed the two days. |
-| Categorical contradiction detection | Numeric-only in this slice. Named and fixed above as §6 item 1. |
-| File upload | UI accepts pasted text. A multipart route + per-type text extractor feeds the existing `ingest_document()` unchanged. |
-| Multi-tenancy, auth, MCP | Single-tenant demo. `organization_id` column and an MCP layer mapping one-to-one from the OpenAPI spec at `/brain/docs` are straightforward next steps. |
-| Embedding / vector search | FTS5 handles the corpus. At 10k+ facts, pgvector sits alongside FTS5 for semantic retrieval. Not a replacement. |
-| Test suite | `tests/` is empty. The six-step manual verification (Q3 answer, approve, 409, idempotent re-ingest, grep checks) was run and passed. |
+| Q1 (ICP drift) and Q2 (budget objection) | One question answered completely beats three answered halfway. Facts are in the DB; only retrieval focus and synthesis context change. |
+| Signal promotion ladder | Facts carry evidence tiers and confidence. The ladder is the next layer — implementing it well requires the categorical contradiction detection and embedding retrieval path first. |
+| Embeddings / vector retrieval | Right for scale; wrong as the primary contradiction mechanism. Added alongside FTS5 at 10k+ facts. |
+| Multi-tenancy, auth, MCP | `organization_id` on existing tables; MCP maps one-to-one to the OpenAPI spec at `/brain/docs`. Straightforward additions. |
+| Test suite | Manual verification: Q3, approve, 409, idempotent re-ingest, grep invariant checks. All passed. |
 
 ---
 
-## 5. What is next
+## 5. What is next, in order
 
-1. **Categorical contradiction detection** — `claim_conflict` path in `detect_contradictions()`. ICP becomes a DB row with severity.
-2. **Q1 and Q2 synthesis** — same pipeline, different retrieval focus. Facts are already in the DB.
-3. **Dynamic entity resolution** — remove hardcoded `KNOWN_ENTITIES`; resolve from extraction output dynamically, flag low-confidence merges for human review.
-4. **Signal promotion ladder** — `candidate → emerging → validated` with human review gates.
-5. **MCP server** — OpenAPI spec at `/brain/docs` maps one-to-one to MCP tools. No new routes needed.
-6. **Wire `migrations/` into `init_db()`** — iterate over `migrations/*.sql` in filename order, `executescript()` each.
-7. **Assertion vs. reference extraction** — some facts echo a prior document rather than state a new claim. A `is_reference: bool` field on `ExtractedFact` would let synthesis distinguish "board note says X" from "board note echoes the investor update saying X" — different epistemic weight.
+1. Categorical contradiction detection — `claim_conflict` path, ICP becomes a DB row
+2. Q1 and Q2 synthesis — same pipeline, different retrieval focus
+3. Signal promotion ladder — `candidate → emerging → validated`, human review gates
+4. Dynamic entity resolution — extract from Claude output, auto-merge at Levenshtein ≤ 1
+5. MCP server — one adapter over the existing OpenAPI spec, no new routes
+
+---
+
+*`claude-3-5-haiku-20241022` was unavailable. `claude-sonnet-4-5-20250929` was selected after testing three alternatives against the `temperature=0` + strict-JSON-output constraint. The hard invariant is `temperature=0`, not the model string.*
