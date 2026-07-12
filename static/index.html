@@ -23,7 +23,7 @@
     .badge.green { background: #1f6f1f; }
     .badge.amber { background: #b8860b; }
     .badge.red { background: #8b1a1a; }
-    .citation { display: inline-block; vertical-align: super; font-size: 10px; font-family: monospace; background: #2a1a10; color: #e07a3a; border: 1px solid #5a2e10; border-radius: 3px; padding: 0 4px; line-height: 1.6; margin: 0 1px; cursor: default; }
+    .citation { display: inline-block; vertical-align: super; font-size: 10px; font-family: monospace; background: #2a1a10; color: #e07a3a; border: 1px solid #5a2e10; border-radius: 3px; padding: 0 4px; line-height: 1.6; margin: 0 3px; cursor: default; }
     .contradiction { background: #2a1a10; border-left: 4px solid #B84800; padding: 12px; margin: 12px 0; }
     .quote { color: #ccc; font-style: italic; margin: 6px 0; }
     .decision { border-top: 1px solid #333; padding: 12px 0; }
@@ -101,9 +101,11 @@
     }
 
     function renderSynthesis(text) {
-      // Render [hexid] as a superscript citation badge showing first 6 chars
+      // Render [hexid] as a superscript citation badge showing first 6 chars.
+      // Add a zero-width space after each badge so adjacent citations ([id1][id2])
+      // don't visually fuse into one long hex string.
       return text.replace(/\[([a-f0-9]{6,16})\]/g, (_, id) =>
-        `<span class="citation" title="${id}">${id.slice(0, 6)}</span>`
+        `<span class="citation" title="${id}">${id.slice(0, 6)}</span>&#8203;`
       );
     }
 
