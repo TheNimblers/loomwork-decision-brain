@@ -11,7 +11,7 @@ Document → Ingest (Claude extracts typed facts) → SQLite →
 Memory (no LLM) → Decision (retrieve → Tavily if needed → Claude synthesizes) → Append-only log
 ```
 
-LLM at exactly two seams. **Seam 1** (`ingest.py::claude_extract`): one call per document, `temperature=0`, strict JSON output, per-fact Pydantic validation before any row is written. **Seam 2** (`decision.py::claude_synthesize`): receives the CEO question, retrieved facts with IDs and verbatim quotes, and detected contradictions; every factual claim in the response must carry a `[fact_id]` citation or the output is invalid. Everything between the seams is deterministic — FTS5 retrieval, arithmetic contradiction detection, tier-weighted confidence scoring, Levenshtein entity resolution. Zero anthropic imports in `memory.py` — enforced, verifiable with grep.
+LLM at exactly two seams. **Seam 1** (`ingest.py::claude_extract`): one call per document, `temperature=0`, strict JSON, per-fact Pydantic validation before any row is written. **Seam 2** (`decision.py::claude_synthesize`): receives the question, retrieved facts with IDs and verbatim quotes, and detected contradictions; every claim must carry a `[fact_id]` citation. Everything between the seams is deterministic — FTS5 retrieval, arithmetic contradiction detection, tier-weighted confidence scoring, Levenshtein entity resolution. Zero anthropic imports in `memory.py`. Synthesis runs on `claude-haiku-4-5`; it cut latency in half while keeping JSON compliance.
 
 **The architectural question I answered differently than Part One:** Part One uses embedding-based signal clustering to connect learnings across sources. I did not build that, and not because I ran out of time. For this question type it is the wrong tool. The runway contradiction is not a semantic similarity problem — it is an arithmetic problem. `18 ≠ 9`. An embedding will score those as *similar* because both appear in runway sentences; it will not surface the conflict. The system that finds the contradiction needs a `numeric_value` column, an inequality check, and a threshold. That is what I built. The claim that embeddings replace SQL in a decision support system is wrong: embeddings are a retrieval heuristic, not a truth model. The truth model is the bi-temporal schema.
 
@@ -25,7 +25,7 @@ The tradeoff is real: FTS5 misses semantically related facts that use different 
 
 **No LLM in the read path.** LLMs in the read path make the system non-auditable — "why did it say that last week?" becomes unanswerable if synthesis re-runs on every query. The deterministic read path means every answer is reproducible from the same fact set. That is a stronger auditability guarantee than any logging layer.
 
-**Contradiction detection at write-time, in the same transaction as INSERT.** Detecting at query time makes the contradiction a function of which facts happen to be retrieved — the same question asked twice could return a different contradiction set. Detecting at write-time makes it a property of the data: stored once, with both fact IDs, a severity, and a description, persisting across all future queries.
+**Contradiction detection at write-time, in the same transaction as INSERT.** Detecting at query time makes the contradiction a function of which facts happen to be retrieved. Detecting at write-time makes it a property of the data: stored once, with both fact IDs, severity, and description, persisting across all future queries.
 
 **Content-addressed identity + `temperature=0`.** `source_id = SHA256(content)[:16]`, `fact_id = SHA256(source_id + fact_type + claim)[:16]`. Re-ingest is structurally a no-op. `temperature=0` makes extraction deterministic enough that the contradiction detector's output is a function of the schema, not of inference variance.
 
@@ -71,4 +71,4 @@ The ICP conflict (tweet: mid-market self-serve; investor update: moving upmarket
 
 ---
 
-*`claude-3-5-haiku-20241022` was unavailable. `claude-sonnet-4-5-20250929` was selected after testing three alternatives against the `temperature=0` + strict-JSON-output constraint. The hard invariant is `temperature=0`, not the model string.*
+*Extraction uses `claude-sonnet-4-5-20250929`; synthesis uses `claude-haiku-4-5`. The hard invariant is `temperature=0`, not the model string.*

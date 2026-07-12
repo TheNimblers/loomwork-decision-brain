@@ -43,7 +43,7 @@ A CEO drops a week of raw inputs (board notes, investor updates, transcripts, em
                                              │  5. If research: Tavily → re-ingest      │
                                              │     (same pipeline, source_type=research)│
                                              │  6. claude_synthesize() → cited JSON     │
-                                             │     Seam 2 — only LLM call in read path  │
+                                             │     Seam 2 — claude-haiku-4-5, temp=0  │
                                              │  7. INSERT decisions (human_decision=NULL)│
                                              └──────────────┬───────────────────────────┘
                                                             │
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS decisions (
 ### `prompts.py`
 Two constants, no logic, no imports.
 - `EXTRACTION_SYSTEM_PROMPT` — strict JSON output, 21 fact types, 5 evidence tiers, verbatim_quote rule, numeric rules
-- `SYNTHESIS_SYSTEM_PROMPT` — strict JSON output, mandatory [fact_id] citations, contradiction surfacing rules, confidence calibration, one-action recommendation format
+- `SYNTHESIS_SYSTEM_PROMPT` — strict JSON output, mandatory [fact_id] citations, contradiction surfacing, confidence calibration, one-action recommendation, 150–250 word synthesis cap, maximum 3 open gaps
 
 ### `ingest.py` — Write Seam 1
 
@@ -352,6 +352,22 @@ Note: confidence in response uses synthesis_json["confidence"] — Claude's cali
 output — not the locally computed value. Local computation is used only for the
 should_research() gate.
 ```
+
+---
+
+## Performance
+
+Synthesis latency was the last fix before submission. The original path used `claude-sonnet-4-5-20250929` for both extraction and synthesis. Synthesis alone took 20–23 seconds, almost entirely output-token generation for the cited response.
+
+The fix cut latency to 10–11 seconds:
+
+| Change | Effect |
+|--------|--------|
+| Switch synthesis model to `claude-haiku-4-5` | ~42% faster generation, same `temperature=0` and JSON compliance |
+| Add 150–250 word length constraint to synthesis prompt | Reduces average output tokens without cutting citations |
+| Use `separators=(',',':')` on JSON payload | Smaller prompt, no indentation overhead |
+
+Extraction stayed on `claude-sonnet-4-5-20250929` because extraction quality dominates downstream correctness; synthesis correctness is bounded by the already-retrieved facts.
 
 ### `seed.py` — One-Command Seeder
 

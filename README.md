@@ -55,7 +55,7 @@ Python · FastAPI · SQLite (FTS5 + bi-temporal schema) · Claude · Tavily · m
 
 **UI:** A small, single-page results view — enough to see Q3 working without spending the two days on UI instead of the loop. Three panels: the Q3 answer with cited fact IDs, the contradiction that triggered it, and the decision log with approve/reject. No framework.
 
-**Note on model:** The build targets `claude-3-5-haiku-20241022`. The Anthropic account available for this build did not expose that model, so the running code uses `claude-sonnet-4-5-20250929` with `temperature=0` to preserve the deterministic intent.
+**Note on model:** Extraction uses `claude-sonnet-4-5-20250929` and synthesis uses `claude-haiku-4-5`. Both calls run at `temperature=0`. The original challenge target was `claude-3-5-haiku-20241022`, which was unavailable on this Anthropic account; haiku-4-5 was chosen for synthesis after the performance fix.
 
 ---
 
@@ -182,6 +182,8 @@ curl -X POST http://localhost:8090/brain/decisions/{id}/decide \
   "sources_cited": [...]
 }
 ```
+
+*The `confidence` value above is representative; the exact number varies by run because synthesis calibrates it from the retrieved facts and contradictions.*
 
 The full synthesis explains that 18 months is the pre-hire figure, the June 10 board note revises it to 9 months post-hire, and Sam Vora has flagged the discrepancy. The defensible number is **9 months of runway post-Q3 AE hires**, with the caveat that the CFO must confirm the exact post-hire burn rate.
 
