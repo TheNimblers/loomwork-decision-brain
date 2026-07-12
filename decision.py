@@ -35,14 +35,14 @@ def claude_synthesize(question: str, facts: list[dict], contradictions: list[dic
         "date":           f.get("source_date"),
         "conditions":     json.loads(f["conditions"]) if f.get("conditions") else None,
         "contested":      bool(f.get("contested", 0))
-    } for f in facts], indent=2)
+    } for f in facts], separators=(",", ":"))
     contradictions_block = json.dumps([{
         "id":           c["id"],
         "description":  c["description"],
         "severity":     c["severity"],
         "fact_a_quote": c.get("fact_a_quote"),
         "fact_b_quote": c.get("fact_b_quote")
-    } for c in contradictions], indent=2)
+    } for c in contradictions], separators=(",", ":"))
     user_message = f"""Question: {question}
 
 Retrieved facts ({len(facts)} total):
@@ -51,8 +51,8 @@ Retrieved facts ({len(facts)} total):
 Contradictions detected ({len(contradictions)} total):
 {contradictions_block}"""
     response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=2048,
+        model="claude-haiku-4-5",
+        max_tokens=1024,
         temperature=0,
         system=SYNTHESIS_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}]

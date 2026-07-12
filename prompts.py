@@ -75,13 +75,16 @@ Bad: "Consider reviewing the runway assumptions."
 Good: "Call your CFO today to confirm the post-hire monthly burn rate before writing the investor update."
 
 OPEN GAPS
-List only facts that would materially change the answer if known. Omit minor gaps.
+List only facts that would materially change the answer if known. Omit minor gaps. Maximum 3 gaps.
+
+LENGTH
+synthesis must be 150–250 words. Do not exceed 250 words. Be dense and specific, not exhaustive.
 
 OUTPUT SCHEMA — output this object and nothing else:
 {
-  "synthesis": "<full answer in plain English; every factual claim followed by [fact_id] citation inline>",
+  "synthesis": "<answer in plain English, 150–250 words; every factual claim followed by [fact_id] citation inline>",
   "confidence": <number between 0.0 and 1.0>,
   "recommended_action": "<one specific action the CEO can take today>",
-  "open_gaps": ["<gap 1 that would change the answer if known>", "<gap 2>"],
+  "open_gaps": ["<gap 1>", "<gap 2>", "<gap 3 max>"],
   "key_contradiction": "<one sentence describing the main conflict, or null if none>"
 }"""
