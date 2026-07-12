@@ -105,15 +105,43 @@
     }
 
     async function query() {
-      const q = document.getElementById('question').value;
-      const res = await fetch(`${API}/query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
-      const data = await res.json();
-      let html = `<p><span class="badge ${badgeClass(data.confidence)}">Confidence: ${data.confidence}</span> ${data.research_triggered ? '<span class="badge">Tavily researched</span>' : ''}</p>`;
+      // Issue 3 fix: validate before sending — show clear feedback on empty question
+      const q = document.getElementById('question').value.trim();
+      if (!q) {
+        document.getElementById('query_result').innerHTML = '<p style="color:#e05;font-weight:600;">Question cannot be empty.</p>';
+        return;
+      }
+
+      const btn = document.querySelector('.panel:nth-child(2) button');
+      btn.disabled = true;
+      btn.textContent = 'Thinking…';
+
+      let data, res;
+      try {
+        res = await fetch(`${API}/query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+        data = await res.json();
+      } catch (e) {
+        document.getElementById('query_result').innerHTML = '<p style="color:#e05;">Network error — is the server running?</p>';
+        btn.disabled = false; btn.textContent = 'Ask';
+        return;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Ask';
+      }
+
+      if (!res.ok) {
+        document.getElementById('query_result').innerHTML = `<p style="color:#e05;font-weight:600;">Error ${res.status}: ${data.detail || 'Unknown error'}</p>`;
+        return;
+      }
+
+      let html = `<p><span class="badge ${badgeClass(data.confidence)}">Confidence: ${data.confidence}</span> ${data.research_triggered ? '<span class="badge amber">Tavily researched</span>' : ''}</p>`;
       html += `<p><strong>Recommended action:</strong> ${data.recommended_action}</p>`;
       if (data.key_contradiction) html += `<div class="contradiction"><strong>Key contradiction:</strong> ${data.key_contradiction}</div>`;
       html += `<pre>${renderSynthesis(data.synthesis)}</pre>`;
       if (data.open_gaps && data.open_gaps.length) html += `<p class="muted"><strong>Open gaps:</strong> ${data.open_gaps.join('; ')}</p>`;
       document.getElementById('query_result').innerHTML = html;
+
+      // Issue 1 fix: loadDecisions() is called AFTER the query() response already contains the
+      // new decision_id — meaning the INSERT is committed before we get here. Safe to load now.
       loadDecisions();
     }
 
@@ -153,12 +181,13 @@
       const ds = await res.json();
       const el = document.getElementById('decisions');
       if (!ds.length) return el.innerText = 'No decisions.';
+      // Issue 2 fix: show full synthesis text — no substring truncation
       el.innerHTML = ds.map(d => `
         <div class="decision">
           <strong>${new Date(d.created_at).toLocaleString()}</strong>
           <span class="badge ${d.human_decision ? 'green' : 'amber'}">${d.human_decision || 'pending'}</span>
           <p class="muted">${d.question}</p>
-          <p>${renderSynthesis(d.synthesis.substring(0, 200))}...</p>
+          <pre style="font-size:13px;max-height:200px;overflow-y:auto;">${renderSynthesis(d.synthesis)}</pre>
           ${d.human_decision ? '' : `<div class="actions"><button onclick="decide('${d.id}', 'approved', this)">Approve</button><button onclick="decide('${d.id}', 'rejected', this)">Reject</button></div>`}
         </div>
       `).join('');
