@@ -9,3 +9,8 @@ venv/
 dist/
 *.egg-info/
 .tsbuildinfo
+# local working files — not for submission
+finalaudit.md
+understanding.md
+loom.md
+_*.py

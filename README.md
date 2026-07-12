@@ -108,30 +108,30 @@ python seed.py
 
 Reads `data/loomwork_corpus.json` and ingests all 12 corpus documents in order. Run before starting the server.
 
-Actual output from this build:
+Representative output from this build:
 
 ```
 Seeding 12 documents...
 
-  OK [ 1/12] Investor Update — May 2026 (Northpeak Series A)       15 facts, 0 contradictions
-  OK [ 2/12] Board Note — Q2 Runway and Hiring Decision             9 facts, 1 contradictions <- contradiction [HIGH]
-  OK [ 3/12] Maya Chen Tweet — June 12 2026                         4 facts, 0 contradictions
-  OK [ 4/12] Customer Call — Acme Freight Evaluation               10 facts, 0 contradictions
-  OK [ 5/12] Sales Call — Brightway Logistics                        9 facts, 0 contradictions
-  OK [ 6/12] Account Review — Delta Logix                            9 facts, 0 contradictions
-  OK [ 7/12] Follow-up Call — Synapse Logistics                      8 facts, 0 contradictions
-  OK [ 8/12] Investor Update — Q1 2026 (Atlas Ventures)              8 facts, 2 contradictions <- contradiction [HIGH]
-  OK [ 9/12] Maya Weekly Note — ICP Decision June 20                 6 facts, 0 contradictions
-  OK [10/12] Pipeline Update — Priya Nair June 25                   14 facts, 0 contradictions
-  OK [11/12] Lost Deal Debrief — FreightMax Nordic                   9 facts, 0 contradictions
-  OK [12/12] Sam Vora Email — Runway and ICP Alignment               8 facts, 0 contradictions
+  OK [ 1/12] Investor Update — May 2026 (Northpeak Series A)       ~15 facts, 0 contradictions
+  OK [ 2/12] Board Note — Q2 Runway and Hiring Decision             ~9 facts, 1 contradictions <- contradiction [HIGH]
+  OK [ 3/12] Maya Chen Tweet — June 12 2026                         ~4 facts, 0 contradictions
+  OK [ 4/12] Customer Call — Acme Freight Evaluation               ~10 facts, 0 contradictions
+  OK [ 5/12] Sales Call — Brightway Logistics                        ~9 facts, 0 contradictions
+  OK [ 6/12] Account Review — Delta Logix                            ~9 facts, 0 contradictions
+  OK [ 7/12] Follow-up Call — Synapse Logistics                      ~8 facts, 0 contradictions
+  OK [ 8/12] Investor Update — Q1 2026 (Atlas Ventures)              ~8 facts, 2 contradictions <- contradiction [HIGH]
+  OK [ 9/12] Maya Weekly Note — ICP Decision June 20                 ~6 facts, 0 contradictions
+  OK [10/12] Pipeline Update — Priya Nair June 25                   ~14 facts, 0 contradictions
+  OK [11/12] Lost Deal Debrief — FreightMax Nordic                   ~9 facts, 0 contradictions
+  OK [12/12] Sam Vora Email — Runway and ICP Alignment               ~8 facts, 0 contradictions
 
-Seed complete. 12 sources 109 facts 3 contradictions detected.
+Seed complete. 12 sources ~100–115 facts 3 contradictions detected.
 ```
 
-The three persisted contradictions are all runway mismatches (18mo vs 9mo, 18mo vs 24mo, 9mo vs 24mo). Deal-specific values like `deal_value_acv` and `budget_authority_threshold` are intentionally excluded from numeric contradiction detection because a different customer's deal size is a data point, not a contradiction.
+**Note on fact count reproducibility:** Anthropic's own documentation states that `temperature=0` "will not be fully deterministic" — Claude ships no seed parameter, so variable batch composition on shared inference servers produces minor token-level variance between runs. Per-document fact counts (shown with `~`) will vary slightly if you re-seed. The contradiction set (three runway mismatches) and the Q3 answer are stable regardless — they are driven by the numeric values in the source documents, not by marginal extraction decisions.
 
-**Note on fact count reproducibility:** Anthropic's own documentation states that temperature=0 "will not be fully deterministic" — Claude ships no seed parameter, so variable batch composition on shared inference servers can produce minor token-level variance between runs. The per-document fact counts above may vary by a small number of facts if you re-run `seed.py`. The contradiction set (three runway mismatches) and the Q3 answer are stable regardless, because they are driven by the numeric values in the source documents, not by marginal extraction decisions.
+The three persisted contradictions are all runway mismatches (18mo vs 9mo, 18mo vs 24mo, 9mo vs 24mo). Deal-specific values like `deal_value_acv` and `budget_authority_threshold` are intentionally excluded from numeric contradiction detection because a different customer's deal size is a data point, not a contradiction.
 
 ---
 
@@ -242,6 +242,8 @@ All paths prefixed `/brain/`. FastAPI generates interactive docs at `/brain/docs
 ## What I deliberately left out and why
 
 The promotion ladder, multi-tenancy, auth, MCP, and a full frontend are all out of scope. The design note (`docs/design-note.md`) explains each tradeoff, the invariant architecture, and the deliberate divergences from the brief. The sharp slice — one pipeline that does extraction, contradiction detection, research, synthesis, and decision logging correctly — is worth more than six features that each do half the job.
+
+**The one thing I would do with more time:** categorical contradiction detection. The ICP conflict — Maya's tweet says mid-market self-serve, the Northpeak investor update says moving upmarket, her own weekly note says "I don't know yet" — is in the data and surfaces in the synthesis answer when relevant facts are retrieved. But it is not a structured row in the `contradictions` table because `detect_contradictions()` is numeric-only. The fix is a second detection path for `conflict_type = "claim_conflict"`: same `fact_type`, different string values, different sources. The schema already supports it. That is the first item in the next build.
 
 ---
 
